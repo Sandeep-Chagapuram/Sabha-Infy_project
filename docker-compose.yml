@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./sabha.db
+      - SECRET_KEY=sabha-production-secret-key-change-me-in-production-1234
+      # Exclusive LLM Provider: Qualcomm Cloud AI Playground
+      - QUALCOMM_API_KEY=${QUALCOMM_API_KEY:-}
+      - QUALCOMM_ENDPOINT=${QUALCOMM_ENDPOINT:-https://api.cloudai.qualcomm.com/v1}
+      - QUALCOMM_ROUTINE_MODEL=Llama-3.1-8B
+      - QUALCOMM_COMPLEX_MODEL=Llama-3.3-70B
+      - QUALCOMM_REASONING_MODEL=deepseek-r1-distill-llama-70b
+      - QUALCOMM_CREATIVE_MODEL=Qwen-QwQ-32B
+      - LIVEKIT_URL=${LIVEKIT_URL:-https://sabha.livekit.cloud}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - MAX_MEETING_BUDGET_USD=2.50
+    volumes:
+      - sabha_data:/app
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  sabha_data:
