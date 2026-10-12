@@ -156,6 +156,66 @@ async def upload_transcript(
         "message": "Transcript file imported successfully."
     }
 
+@router.post("/workspaces/{workspace_id}/transcript-lab/upload-audio")
+async def upload_audio(
+    workspace_id: str,
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    timezone: Optional[str] = Form("UTC"),
+    project_context: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    member: WorkspaceMember = Depends(get_current_workspace_member)
+):
+    from app.meetings.audio_transcription import AudioTranscriptionService
+
+    content_bytes = await file.read()
+    res = await AudioTranscriptionService.transcribe_audio_file(
+        file_bytes=content_bytes,
+        filename=file.filename or "audio.mp3"
+    )
+
+    if not res.is_success:
+        raise HTTPException(
+            status_code=400,
+            detail=res.message or "Audio transcription failed."
+        )
+
+    meeting = Meeting(
+        workspace_id=workspace_id,
+        title=title,
+        input_source=MeetingInputSource.UPLOADED_AUDIO,
+        status=MeetingStatus.COMPLETED,
+        meeting_date=datetime.utcnow(),
+        timezone=timezone or "UTC",
+        project_context=project_context,
+        duration_seconds=int(res.duration_seconds or 0)
+    )
+    db.add(meeting)
+    db.flush()
+
+    for seg in res.segments:
+        ts = TranscriptSegment(
+            meeting_id=meeting.id,
+            sequence_number=seg["sequence_number"],
+            speaker_name=seg.get("speaker_name"),
+            text=seg["text"],
+            start_time=seg.get("start_time"),
+            end_time=seg.get("end_time"),
+            status=SegmentStatus.FINAL
+        )
+        db.add(ts)
+
+    db.commit()
+    return {
+        "meeting_id": meeting.id,
+        "title": meeting.title,
+        "filename": file.filename,
+        "segment_count": len(res.segments),
+        "duration_seconds": res.duration_seconds,
+        "message": "Audio file transcribed and imported successfully."
+    }
+
 @router.get("/workspaces/{workspace_id}/meetings/{meeting_id}/segments", response_model=List[TranscriptSegmentResponse])
 def get_segments(
     workspace_id: str,

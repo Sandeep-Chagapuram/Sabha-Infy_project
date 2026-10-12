@@ -6,7 +6,7 @@ from app.models.user import User, Workspace, WorkspaceMember, UserRole
 from app.schemas.auth import UserRegister, UserLogin, Token, UserResponse, WorkspaceResponse
 import uuid
 
-router = APIRouter()
+router = APIRouter(prefix="/auth")
 
 @router.post("/register", response_model=Token)
 def register(user_in: UserRegister, db: Session = Depends(get_db)):

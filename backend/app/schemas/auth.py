@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 from app.models.user import UserRole
@@ -15,13 +15,13 @@ class TokenData(BaseModel):
     user_id: Optional[str] = None
 
 class UserRegister(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     full_name: str
     workspace_name: Optional[str] = "Default Workspace"
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class UserResponse(BaseModel):
@@ -56,5 +56,5 @@ class WorkspaceCreate(BaseModel):
     name: str
 
 class MemberInvite(BaseModel):
-    email: EmailStr
+    email: str
     role: UserRole = UserRole.PARTICIPANT
